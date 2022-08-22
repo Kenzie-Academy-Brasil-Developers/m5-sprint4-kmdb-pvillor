@@ -1,10 +1,14 @@
 from rest_framework.views import APIView, Request, Response, status
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAdminUser
 from .serializers import LoginSerializer, UserSerializer
 from rest_framework.authtoken.models import Token
-from rest_framework.authtoken.views import ObtainAuthToken
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
+from .models import User
+from .permissions import IsAdminOrCritic
 
-class UserView(APIView):
+class RegisterView(APIView):
     def post(self, request: Request):
         serializer = UserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -28,3 +32,23 @@ class LoginView(APIView):
         token, _ = Token.objects.get_or_create(user=user)
 
         return Response({'token': token.key})
+
+class UserView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def get(self, request: Request):
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+
+        return Response(serializer.data)
+
+class UserDetailView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminOrCritic]
+
+    def get(self, request: Request, user_id: int):
+        user = get_object_or_404(User, id=user_id)
+        serializer = UserSerializer(user)
+
+        return Response(serializer.data)
