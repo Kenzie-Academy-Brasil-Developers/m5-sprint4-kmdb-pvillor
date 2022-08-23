@@ -2,22 +2,24 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView, Request, Response, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.pagination import PageNumberPagination
 from movies.models import Movie
 from users.models import User
 from .models import Review
 from .serializers import ReviewSerializer
 from .permissions import IsAdminOrCriticOrReadOnly
 
-class ReviewView(APIView):
+class ReviewView(APIView, PageNumberPagination):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminOrCriticOrReadOnly]
 
     def get(self, request: Request, movie_id: int):
         movie = get_object_or_404(Movie, id=movie_id)
         reviews = Review.objects.filter(movie_id=movie.id)
-        serializer = ReviewSerializer(reviews, many=True)
+        result_page = self.paginate_queryset(reviews, request, view=self)
+        serializer = ReviewSerializer(result_page, many=True)
 
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
     def post(self, request: Request, movie_id: int):
         movie = get_object_or_404(Movie, id=movie_id)

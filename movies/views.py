@@ -1,20 +1,21 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView, Request, Response, status
 from rest_framework.authentication import TokenAuthentication
-
+from rest_framework.pagination import PageNumberPagination
 from movies.permissions import IsAdminOrReadOnly
 from .models import Movie
 from .serializers import MovieSerializer
 
-class MovieView(APIView):
+class MovieView(APIView, PageNumberPagination):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request: Request):
         movies = Movie.objects.all()
-        serializer = MovieSerializer(movies, many=True)
+        result_page = self.paginate_queryset(movies, request, view=self)
+        serializer = MovieSerializer(result_page, many=True)
 
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
     def post(self, request: Request):
         serializer = MovieSerializer(data=request.data)

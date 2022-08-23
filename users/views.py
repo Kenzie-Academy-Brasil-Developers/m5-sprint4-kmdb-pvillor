@@ -1,6 +1,7 @@
 from rest_framework.views import APIView, Request, Response, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAdminUser
+from rest_framework.pagination import PageNumberPagination
 from .serializers import LoginSerializer, UserSerializer
 from rest_framework.authtoken.models import Token
 from django.shortcuts import get_object_or_404
@@ -33,15 +34,16 @@ class LoginView(APIView):
 
         return Response({'token': token.key})
 
-class UserView(APIView):
+class UserView(APIView, PageNumberPagination):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminUser]
 
     def get(self, request: Request):
         users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
+        result_page = self.paginate_queryset(users, request, view=self)
+        serializer = UserSerializer(result_page, many=True)
 
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
 class UserDetailView(APIView):
     authentication_classes = [TokenAuthentication]
