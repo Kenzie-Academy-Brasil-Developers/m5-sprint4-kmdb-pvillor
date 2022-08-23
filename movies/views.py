@@ -38,3 +38,13 @@ class MovieDetailView(APIView):
         movie.delete()
 
         return Response(status=204)
+
+    def patch(self, request: Request, movie_id: int):
+        movie = get_object_or_404(Movie, id=movie_id)
+
+        serializer = MovieSerializer(movie, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return Response(serializer.data)
